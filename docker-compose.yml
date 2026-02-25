@@ -1,0 +1,59 @@
+version: "3.9"
+
+services:
+
+  db:
+    image: postgres:16-alpine
+    container_name: taskboard-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - taskboard-ntier
+
+  redis:
+    image: redis:7-alpine
+    container_name: taskboard-redis
+    restart: unless-stopped
+    networks:
+      - taskboard-ntier
+
+  app:
+    build: ./api
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - redis
+    networks:
+      - taskboard-ntier
+
+  nginx:
+    image: nginx:alpine
+    container_name: taskboard-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./frontend:/usr/share/nginx/html:ro
+    depends_on:
+      - app
+    networks:
+      - taskboard-ntier
+
+networks:
+  taskboard-ntier:
+    driver: bridge
+
+volumes:
+  postgres_data:
