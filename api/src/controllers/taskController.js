@@ -2,11 +2,25 @@
 const taskService = require('../services/taskService');
 
 class TaskController {
+
+    // ✅ LEVEL 2: ส่ง X-Cache header
     async getAllTasks(req, res, next) {
         try {
-            const tasks = await taskService.getAllTasks();
-            res.json({ success: true, data: tasks, count: tasks.length });
-        } catch (error) { next(error); }
+            const result = await taskService.getAllTasks(req);
+
+            if (req.cacheStatus) {
+                res.set('X-Cache', req.cacheStatus);
+            }
+
+            res.json({
+                success: true,
+                data: result,
+                count: result.length
+            });
+
+        } catch (error) {
+            next(error);
+        }
     }
 
     async getTaskById(req, res, next) {
